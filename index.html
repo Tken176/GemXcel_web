@@ -1,445 +1,825 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>GemXcel | AI & Blockchain cho Đá quý</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #faf9ff;
+            color: #1e1e2f;
+            line-height: 1.5;
+            scroll-behavior: smooth;
+        }
 
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap');
+        /* ===== NAVBAR ===== */
+        .navbar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 1rem 5%; background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(8px); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+            position: sticky; top: 0; z-index: 1000; flex-wrap: wrap; gap: 0.8rem;
+        }
+        .logo {
+            font-family: 'Poppins', sans-serif; font-size: 1.8rem; font-weight: 700;
+            background: linear-gradient(135deg, #c0399b, #6c5ce7);
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+            text-decoration: none;
+        }
+        .nav-links { display: flex; gap: 2rem; align-items: center; }
+        .nav-links a { text-decoration: none; font-weight: 500; color: #2d2b3e; transition: color 0.2s; }
+        .nav-links a:hover { color: #9b59b6; }
+        .auth-buttons { display: flex; gap: 0.8rem; align-items: center; }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+        .btn-outline, .btn-primary {
+            padding: 0.5rem 1.2rem; border-radius: 40px; font-weight: 600; border: none;
+            cursor: pointer; transition: all 0.2s ease; font-size: 0.9rem;
+            font-family: 'Inter', sans-serif; display: inline-flex; align-items: center; gap: 0.4rem;
+        }
+        .btn-outline { background: transparent; border: 1.5px solid #9b59b6; color: #9b59b6; }
+        .btn-outline:hover { background: #9b59b6; color: white; transform: translateY(-2px); }
+        .btn-primary { background: linear-gradient(95deg, #c0399b, #6c5ce7); color: white; box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(108, 92, 231, 0.4); }
 
-  body { font-family: 'Sora', sans-serif; }
+        .user-info { display: flex; align-items: center; gap: 0.8rem; background: #f0eef7; padding: 0.3rem 0.8rem 0.3rem 0.4rem; border-radius: 50px; }
+        .user-avatar {
+            width: 36px; height: 36px; background: linear-gradient(145deg, #c0399b, #6c5ce7);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            color: white; font-weight: bold; font-size: 1rem; flex-shrink: 0;
+        }
+        #userNameSpan { font-weight: 600; color: #2d2b3e; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-  .wrap {
-    min-height: 520px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem 1rem;
-    position: relative;
-    overflow: hidden;
-    background: #0a0a14;
-    border-radius: 16px;
-  }
+        /* ===== HERO ===== */
+        .hero { padding: 5rem 5% 4rem; text-align: center; background: linear-gradient(120deg, #ffffff 0%, #f8f4ff 100%); }
+        .hero h1 {
+            font-size: 3.2rem; font-weight: 800; background: linear-gradient(125deg, #2c2c54, #a02080);
+            -webkit-background-clip: text; background-clip: text; color: transparent; margin-bottom: 1rem; line-height: 1.2;
+        }
+        .hero p { font-size: 1.2rem; color: #4a4a6a; max-width: 700px; margin: 0 auto 2rem; }
+        
+        /* ===== DASHBOARD (HỒ SƠ HỌC TẬP) ===== */
+        .dashboard-section { padding: 2rem 5% 4rem; background: #faf9ff; }
+        .dashboard-container {
+            max-width: 1000px; margin: 0 auto; background: white;
+            border-radius: 24px; padding: 2rem; box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            border: 1px solid #f0eef7;
+        }
+        .dashboard-container h2 { text-align: center; margin-bottom: 2rem; color: #2d2b3e; font-size: 1.8rem; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.5rem; }
+        .stat-card {
+            display: flex; align-items: center; gap: 1rem; padding: 1.5rem;
+            background: #fdfcff; border-radius: 16px; border: 1px solid #eef;
+            transition: transform 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(108,92,231,0.1); }
+        .stat-card i { font-size: 2.2rem; }
+        .stat-info { display: flex; flex-direction: column; }
+        .stat-value { font-size: 1.6rem; font-weight: 700; color: #2d2b3e; }
+        .stat-label { font-size: 0.9rem; color: #7a7a9a; font-weight: 500;}
 
-  .bg-orb {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(60px);
-    opacity: 0.35;
-    pointer-events: none;
-    animation: drift 8s ease-in-out infinite alternate;
-  }
-  .bg-orb.a { width: 300px; height: 300px; background: #6c47ff; top: -80px; left: -60px; animation-delay: 0s; }
-  .bg-orb.b { width: 200px; height: 200px; background: #00d4aa; bottom: -60px; right: -40px; animation-delay: 2s; }
-  .bg-orb.c { width: 150px; height: 150px; background: #ff5fa0; top: 40%; right: 10%; animation-delay: 4s; }
+        /* ===== FEATURES & ABOUT ===== */
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 2rem; padding: 3rem 5%; background: white; }
+        .feature-card { background: #ffffff; border-radius: 28px; padding: 2rem 1.5rem; box-shadow: 0 20px 35px -12px rgba(0,0,0,0.08); border: 1px solid #eeeaff; transition: transform 0.2s; }
+        .feature-card:hover { transform: translateY(-4px); box-shadow: 0 28px 45px -12px rgba(108, 92, 231, 0.15); }
+        .feature-card i { font-size: 2.8rem; background: linear-gradient(135deg, #c0399b, #6c5ce7); -webkit-background-clip: text; background-clip: text; color: transparent; margin-bottom: 1rem; display: block; }
+        
+        .about-section { padding: 4rem 5%; background: #f2effc; border-radius: 40px 40px 0 0; }
+        .about-container { max-width: 1200px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 3rem; align-items: center; }
+        .about-text { flex: 1; min-width: 280px; }
+        .about-text h2 { font-size: 2rem; margin-bottom: 1rem; color: #2d2b3e;}
+        .about-text p { color: #4a4a6a; margin-bottom: 0.8rem; line-height: 1.8; }
 
-  @keyframes drift { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(20px, 20px) scale(1.08); } }
+        /* ===== MODAL & FORMS ===== */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px); justify-content: center; align-items: center; z-index: 2000; padding: 1rem; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; max-width: 440px; width: 100%; border-radius: 32px; padding: 2.2rem 2rem; position: relative; animation: fadeUp 0.22s ease; box-shadow: 0 32px 64px rgba(0,0,0,0.18); }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+        .modal-content h3 { font-size: 1.7rem; margin-bottom: 1.5rem; text-align: center; }
+        .input-group { margin-bottom: 1rem; position: relative; }
+        .input-group i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #aaa; }
+        .modal-content input { width: 100%; padding: 12px 15px 12px 38px; border: 1.5px solid #e0ddf5; border-radius: 28px; outline: none; background: #faf9ff; }
+        .modal-content input:focus { border-color: #c0399b; box-shadow: 0 0 0 3px rgba(192, 57, 155, 0.15); background: white; }
+        .modal-content button[type="submit"] { width: 100%; background: linear-gradient(95deg, #c0399b, #6c5ce7); border: none; padding: 13px; border-radius: 40px; color: white; font-weight: bold; cursor: pointer; margin-top: 0.5rem; }
+        .close-modal { position: absolute; top: 16px; right: 20px; font-size: 1.6rem; cursor: pointer; background: none; border: none; color: #bbb; }
+        
+        .msg { font-size: 0.85rem; margin-top: 10px; padding: 10px; border-radius: 20px; text-align: center; }
+        .msg:empty { display: none; }
+        .msg.error { background: #ffe6e6; color: #c0392b; }
+        .msg.success { background: #e0f7e8; color: #2e7d32; }
 
-  .card {
-    background: rgba(255,255,255,0.05);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 20px;
-    padding: 2rem 2rem;
-    width: 100%;
-    max-width: 420px;
-    position: relative;
-    animation: fadeUp 0.7s cubic-bezier(0.16,1,0.3,1) both;
-  }
+        /* ===== TOAST ===== */
+        #toastContainer { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        .toast { padding: 12px 20px; border-radius: 16px; color: white; font-weight: 500; animation: slideIn 0.3s ease, fadeOut 0.4s ease 2.6s forwards; }
+        .toast.success { background: linear-gradient(95deg, #00b894, #00cec9); }
+        .toast.error   { background: linear-gradient(95deg, #e17055, #d63031); }
+        .toast.info    { background: linear-gradient(95deg, #6c5ce7, #a29bfe); }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes fadeOut { to { opacity: 0; transform: translateX(40px); } }
 
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(30px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
+        @media (max-width: 768px) { .navbar { flex-direction: column; } .hero h1 { font-size: 2rem; } }
+    </style>
+</head>
+<body>
 
-  .logo-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 1.6rem;
-  }
-
-  .logo-icon {
-    width: 36px; height: 36px;
-    border-radius: 10px;
-    background: linear-gradient(135deg, #6c47ff, #00d4aa);
-    display: flex; align-items: center; justify-content: center;
-    font-family: 'Space Mono', monospace;
-    font-size: 16px; font-weight: 700; color: #fff;
-    flex-shrink: 0;
-  }
-
-  .logo-text { font-size: 18px; font-weight: 600; color: #fff; letter-spacing: -0.3px; }
-
-  h2 {
-    font-size: 22px; font-weight: 600; color: #fff;
-    letter-spacing: -0.4px; margin-bottom: 4px;
-  }
-  .subtitle { font-size: 13px; color: rgba(255,255,255,0.5); margin-bottom: 1.6rem; }
-
-  .field { margin-bottom: 1rem; }
-
-  label { display: block; font-size: 12px; color: rgba(255,255,255,0.55); margin-bottom: 5px; letter-spacing: 0.4px; text-transform: uppercase; }
-
-  .input-wrap { position: relative; }
-
-  .input-wrap svg {
-    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
-    width: 16px; height: 16px; opacity: 0.45; pointer-events: none;
-    transition: opacity 0.2s;
-  }
-
-  input[type="text"], input[type="email"], input[type="password"] {
-    width: 100%;
-    background: rgba(255,255,255,0.07);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 10px;
-    padding: 10px 12px 10px 38px;
-    font-size: 14px;
-    font-family: 'Sora', sans-serif;
-    color: #fff;
-    outline: none;
-    transition: border-color 0.2s, background 0.2s;
-  }
-
-  input::placeholder { color: rgba(255,255,255,0.25); }
-
-  input:focus {
-    border-color: #6c47ff;
-    background: rgba(108,71,255,0.1);
-  }
-
-  input:focus ~ svg, .input-wrap:focus-within svg { opacity: 1; }
-
-  .eye-btn {
-    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
-    background: none; border: none; cursor: pointer; padding: 4px;
-    color: rgba(255,255,255,0.35);
-    transition: color 0.2s;
-  }
-  .eye-btn:hover { color: rgba(255,255,255,0.8); }
-
-  .strength-bar { display: flex; gap: 4px; margin-top: 6px; }
-  .strength-seg {
-    height: 3px; flex: 1; border-radius: 2px;
-    background: rgba(255,255,255,0.1);
-    transition: background 0.3s;
-  }
-
-  .btn {
-    width: 100%;
-    margin-top: 1.2rem;
-    padding: 12px;
-    border-radius: 10px;
-    font-size: 15px;
-    font-family: 'Sora', sans-serif;
-    font-weight: 600;
-    cursor: pointer;
-    border: none;
-    background: linear-gradient(135deg, #6c47ff, #5a8cff);
-    color: #fff;
-    position: relative;
-    overflow: hidden;
-    transition: opacity 0.2s, transform 0.1s;
-    letter-spacing: 0.2px;
-  }
-
-  .btn:hover { opacity: 0.9; }
-  .btn:active { transform: scale(0.98); }
-  .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-
-  .btn-ripple {
-    position: absolute; border-radius: 50%;
-    width: 200px; height: 200px;
-    background: rgba(255,255,255,0.15);
-    transform: scale(0); opacity: 1;
-    animation: ripple 0.6s ease-out forwards;
-    pointer-events: none;
-  }
-
-  @keyframes ripple { to { transform: scale(3); opacity: 0; } }
-
-  .spinner {
-    display: inline-block;
-    width: 16px; height: 16px;
-    border: 2px solid rgba(255,255,255,0.3);
-    border-top-color: #fff;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    vertical-align: middle;
-    margin-right: 6px;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .err-msg {
-    font-size: 12px; color: #ff7070;
-    margin-top: 5px;
-    display: none;
-    animation: fadeIn 0.3s;
-  }
-  @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
-
-  /* Success screen */
-  .success-screen {
-    display: none;
-    text-align: center;
-    animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) both;
-  }
-
-  .success-icon {
-    width: 72px; height: 72px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #00d4aa, #00a87a);
-    display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 1.2rem;
-    font-size: 32px;
-    animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
-    animation-delay: 0.1s;
-    opacity: 0;
-  }
-
-  @keyframes popIn {
-    from { opacity: 0; transform: scale(0.5); }
-    to   { opacity: 1; transform: scale(1); }
-  }
-
-  .success-screen h2 { margin-bottom: 8px; }
-  .success-screen p { font-size: 14px; color: rgba(255,255,255,0.55); margin-bottom: 1.4rem; line-height: 1.6; }
-
-  .email-badge {
-    display: inline-block;
-    background: rgba(108,71,255,0.2);
-    border: 1px solid rgba(108,71,255,0.4);
-    border-radius: 8px;
-    padding: 6px 14px;
-    font-size: 13px;
-    color: #a78bff;
-    margin-bottom: 1.4rem;
-    font-family: 'Space Mono', monospace;
-  }
-
-  .open-mail-btn {
-    display: inline-block;
-    padding: 11px 28px;
-    background: #fff;
-    color: #1a1a2e;
-    border-radius: 10px;
-    font-size: 14px;
-    font-weight: 600;
-    font-family: 'Sora', sans-serif;
-    cursor: pointer;
-    border: none;
-    transition: opacity 0.2s, transform 0.1s;
-    letter-spacing: 0.2px;
-  }
-  .open-mail-btn:hover { opacity: 0.88; }
-  .open-mail-btn:active { transform: scale(0.97); }
-
-  .login-link { margin-top: 1.2rem; font-size: 13px; color: rgba(255,255,255,0.4); }
-  .login-link a { color: #a78bff; text-decoration: none; cursor: pointer; }
-  .login-link a:hover { text-decoration: underline; }
-
-  .toast {
-    position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
-    background: #1e1e32; border: 1px solid rgba(255,255,255,0.1);
-    color: #fff; padding: 10px 18px; border-radius: 8px;
-    font-size: 13px; white-space: nowrap;
-    animation: toastIn 0.4s ease, toastOut 0.4s ease 2.6s forwards;
-    z-index: 100;
-  }
-  @keyframes toastIn  { from { opacity:0; transform: translate(-50%,10px); } to { opacity:1; transform: translate(-50%,0); } }
-  @keyframes toastOut { to { opacity:0; transform: translate(-50%,10px); } }
-</style>
-
-<div class="wrap">
-  <div class="bg-orb a"></div>
-  <div class="bg-orb b"></div>
-  <div class="bg-orb c"></div>
-
-  <div class="card">
-
-    <!-- REGISTER FORM -->
-    <div id="formView">
-      <div class="logo-row">
-        <div class="logo-icon">S</div>
-        <div class="logo-text">SignUp</div>
-      </div>
-
-      <h2>Tạo tài khoản</h2>
-      <div class="subtitle">Điền thông tin để bắt đầu hành trình của bạn</div>
-
-      <div class="field">
-        <label>Tên tài khoản</label>
-        <div class="input-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="color:#a78bff">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-          </svg>
-          <input type="text" id="username" placeholder="nguyenvana" autocomplete="username" />
-        </div>
-        <div class="err-msg" id="errUser">Tên tài khoản cần ít nhất 3 ký tự</div>
-      </div>
-
-      <div class="field">
-        <label>Email</label>
-        <div class="input-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="color:#00d4aa">
-            <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 7L2 7"/>
-          </svg>
-          <input type="email" id="email" placeholder="ban@gmail.com" autocomplete="email" />
-        </div>
-        <div class="err-msg" id="errEmail">Email không hợp lệ</div>
-      </div>
-
-      <div class="field">
-        <label>Mật khẩu</label>
-        <div class="input-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="color:#ff5fa0">
-            <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-          </svg>
-          <input type="password" id="password" placeholder="••••••••" autocomplete="new-password" oninput="checkStrength(this.value)" />
-          <button type="button" class="eye-btn" onclick="togglePwd()" title="Hiện/ẩn mật khẩu">
-            <svg id="eyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-            </svg>
-          </button>
-        </div>
-        <div class="strength-bar">
-          <div class="strength-seg" id="s1"></div>
-          <div class="strength-seg" id="s2"></div>
-          <div class="strength-seg" id="s3"></div>
-          <div class="strength-seg" id="s4"></div>
-        </div>
-        <div class="err-msg" id="errPwd">Mật khẩu cần ít nhất 6 ký tự</div>
-      </div>
-
-      <button class="btn" id="registerBtn" onclick="doRegister(event)">
-        Đăng ký miễn phí
-      </button>
-
-      <div class="login-link">Đã có tài khoản? <a>Đăng nhập</a></div>
+<nav class="navbar">
+    <a class="logo" href="#">Gem<span style="color:#6c5ce7; background:none; -webkit-text-fill-color:#6c5ce7;">Xcel</span></a>
+    <div class="nav-links">
+        <a href="#">Trang chủ</a>
+        <a href="#features">Tính năng</a>
+        <a href="#about">Dự án</a>
     </div>
-
-    <!-- SUCCESS SCREEN -->
-    <div class="success-screen" id="successView">
-      <div class="success-icon">✓</div>
-      <h2>Kiểm tra email!</h2>
-      <p>Chúng tôi đã gửi link xác thực đến</p>
-      <div class="email-badge" id="emailBadge">—</div>
-      <p>Mở Gmail và nhấn vào link để kích hoạt tài khoản của bạn.</p>
-      <button class="open-mail-btn" onclick="openGmail()">Mở Gmail ngay</button>
-      <div class="login-link" style="margin-top:1rem;">Chưa nhận được? <a onclick="resend()">Gửi lại</a></div>
+    <div id="authSection" class="auth-buttons">
+        <button id="loginBtn" class="btn-outline"><i class="fas fa-sign-in-alt"></i> Đăng nhập</button>
+        <button id="signupBtn" class="btn-primary"><i class="fas fa-user-plus"></i> Đăng ký</button>
     </div>
+    <div id="userPanel" style="display:none;" class="user-info">
+        <div class="user-avatar" id="userAvatar">U</div>
+        <span id="userNameSpan">Thành viên</span>
+        <button id="logoutButton" class="btn-outline" style="padding:0.3rem 0.9rem; font-size:0.82rem;"><i class="fas fa-sign-out-alt"></i> Thoát</button>
+    </div>
+</nav>
 
-  </div>
+<section class="hero">
+    <h1>GemXcel — Nền tảng Học tập Đá quý</h1>
+    <p>Kết hợp giữa Trí tuệ nhân tạo và Gamification để giúp bạn chinh phục kiến thức về đá quý một cách dễ dàng.</p>
+</section>
+
+<section id="dashboardSection" class="dashboard-section" style="display:none;">
+    <div class="dashboard-container">
+        <h2><i class="fas fa-chart-pie" style="color: #6c5ce7;"></i> Thống Kê Học Tập Của Bạn</h2>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <i class="fas fa-fire" style="color: #ff7675;"></i>
+                <div class="stat-info">
+                    <span class="stat-value" id="statStreak">0</span>
+                    <span class="stat-label">Chuỗi ngày học</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-star" style="color: #fdcb6e;"></i>
+                <div class="stat-info">
+                    <span class="stat-value" id="statPoint">0</span>
+                    <span class="stat-label">Tổng điểm</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-book-open" style="color: #74b9ff;"></i>
+                <div class="stat-info">
+                    <span class="stat-value" id="statLessons">0</span>
+                    <span class="stat-label">Bài đã hoàn thành</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-bullseye" style="color: #55efc4;"></i>
+                <div class="stat-info">
+                    <span class="stat-value" id="statAccuracy">0%</span>
+                    <span class="stat-label">Tỉ lệ trả lời đúng</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-clock" style="color: #a29bfe;"></i>
+                <div class="stat-info">
+                    <span class="stat-value" id="statPlaytime">0 phút</span>
+                    <span class="stat-label">Thời gian học</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="features" class="features-grid">
+    <div class="feature-card">
+        <i class="fas fa-brain"></i>
+        <h3>AI Grading</h3>
+        <p>Phân tích độ tinh khiết, màu sắc bằng deep learning, độ chính xác cao.</p>
+    </div>
+    <div class="feature-card">
+        <i class="fas fa-gamepad"></i>
+        <h3>Vừa học vừa chơi</h3>
+        <p>Thu thập ngọc, duy trì chuỗi ngày và tham gia các bài Quiz để nhận phần thưởng.</p>
+    </div>
+    <div class="feature-card">
+        <i class="fas fa-chart-line"></i>
+        <h3>Báo cáo tiến độ</h3>
+        <p>Đồng bộ dữ liệu học tập lên cloud, phụ huynh dễ dàng theo dõi trực tuyến.</p>
+    </div>
+</section>
+
+<section id="about" class="about-section">
+    <div class="about-container">
+        <div class="about-text">
+            <h2>Về GemXcel Project</h2>
+            <p><strong>GemXcel</strong> là dự án mã nguồn mở tiên phong kết hợp AI và Gamification để số hóa ngành giáo dục đá quý.</p>
+        </div>
+    </div>
+</section>
+
+<div id="loginModal" class="modal">
+    <div class="modal-content">
+        <button class="close-modal" data-modal="loginModal">&times;</button>
+        <h3><i class="fas fa-sign-in-alt"></i> Đăng nhập</h3>
+        <form id="loginFormModal">
+            <div class="input-group"><i class="fas fa-envelope"></i><input type="email" id="loginEmail" placeholder="Email của bạn" required></div>
+            <div class="input-group"><i class="fas fa-lock"></i><input type="password" id="loginPassword" placeholder="Mật khẩu" required></div>
+            <button type="submit" id="loginSubmitBtn">Đăng nhập</button>
+            <div id="loginMessage" class="msg"></div>
+        </form>
+        <div style="text-align:center; margin-top:1rem; font-size:0.85rem;"><a id="switchToSignupLink" style="color:#9b59b6; cursor:pointer;">Chưa có tài khoản? <strong>Đăng ký</strong></a></div>
+    </div>
 </div>
 
+<div id="signupModal" class="modal">
+    <div class="modal-content">
+        <button class="close-modal" data-modal="signupModal">&times;</button>
+        <h3><i class="fas fa-user-plus"></i> Đăng ký</h3>
+        <form id="signupFormModal">
+            <div class="input-group"><i class="fas fa-user"></i><input type="text" id="signupUsername" placeholder="Tên hiển thị" required></div>
+            <div class="input-group"><i class="fas fa-envelope"></i><input type="email" id="signupEmail" placeholder="Địa chỉ Gmail" required></div>
+            <div class="input-group"><i class="fas fa-lock"></i><input type="password" id="signupPassword" placeholder="Mật khẩu (tối thiểu 6 ký tự)" required></div>
+            <div class="input-group"><i class="fas fa-lock"></i><input type="password" id="signupConfirm" placeholder="Xác nhận mật khẩu" required></div>
+            <button type="submit" id="signupSubmitBtn">Đăng ký ngay</button>
+            <div id="signupMessage" class="msg"></div>
+        </form>
+        <div style="text-align:center; margin-top:1rem; font-size:0.85rem;"><a id="switchToLoginLink" style="color:#9b59b6; cursor:pointer;">Đã có tài khoản? <strong>Đăng nhập</strong></a></div>
+    </div>
+</div>
+
+<div id="toastContainer"></div>
+
+<footer><p>© 2025 GemXcel Project</p></footer>
+
 <script>
-const SUPA_URL  = 'https://hwqlvikkzeybssocyjjn.supabase.co';
-const SUPA_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh3cWx2aWtremV5YnNzb2N5ampuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyMjI0MjIsImV4cCI6MjA5MDc5ODQyMn0.TbE6dcFZsCWh0267JpDm4dQFbWEgIgU3EN5OUXM5CLg';
+// ============================================================
+// 1. KHỞI TẠO SUPABASE (ĐÃ FIX LỖI SAI LINK)
+// ============================================================
+const SUPABASE_URL  = "https://hwqlvikzeybssocyjjn.supabase.co"; // <-- Đã xóa chữ 'k' bị dư ở đây
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh3cWx2aWtremV5YnNzb2N5ampuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyMjI0MjIsImV4cCI6MjA5MDc5ODQyMn0.TbE6dcFZsCWh0267JpDm4dQFbWEgIgU3EN5OUXM5CLg";
 
-let showPwd = false;
-
-function togglePwd() {
-  showPwd = !showPwd;
-  const inp = document.getElementById('password');
-  inp.type = showPwd ? 'text' : 'password';
-  document.getElementById('eyeIcon').innerHTML = showPwd
-    ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>'
-    : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+let supabase;
+if (window.supabase) {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 }
 
-function checkStrength(v) {
-  const segs = [document.getElementById('s1'),document.getElementById('s2'),document.getElementById('s3'),document.getElementById('s4')];
-  const colors = ['#ff4444','#ff9900','#ffe000','#00d4aa'];
-  let score = 0;
-  if (v.length >= 6)  score++;
-  if (v.length >= 10) score++;
-  if (/[A-Z]/.test(v) || /[0-9]/.test(v)) score++;
-  if (/[^a-zA-Z0-9]/.test(v)) score++;
-  segs.forEach((s,i) => {
-    s.style.background = i < score ? colors[score-1] : 'rgba(255,255,255,0.1)';
-  });
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 3400);
 }
 
-function showErr(id, show) {
-  document.getElementById(id).style.display = show ? 'block' : 'none';
-}
+// ============================================================
+// 2. LẤY DỮ LIỆU TỪ BẢNG STUDENT_STATS
+// ============================================================
+async function fetchUserStats(userId) {
+    try {
+        const { data, error } = await supabase
+            .from('student_stats')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
 
-function showToast(msg) {
-  const old = document.querySelector('.toast');
-  if (old) old.remove();
-  const t = document.createElement('div');
-  t.className = 'toast';
-  t.textContent = msg;
-  document.querySelector('.card').appendChild(t);
-  setTimeout(() => t.remove(), 3200);
-}
+        if (error) {
+            console.log("Học sinh chưa có dữ liệu đồng bộ từ Game:", error.message);
+            return;
+        }
 
-async function doRegister(e) {
-  const btn = document.getElementById('registerBtn');
-  const ripple = document.createElement('div');
-  ripple.className = 'btn-ripple';
-  ripple.style.left = (e.offsetX - 100) + 'px';
-  ripple.style.top  = (e.offsetY - 100) + 'px';
-  btn.appendChild(ripple);
-  setTimeout(() => ripple.remove(), 700);
+        // Cập nhật dữ liệu lên giao diện
+        document.getElementById('statStreak').textContent = data.streak || 0;
+        document.getElementById('statPoint').textContent = data.point || 0;
+        document.getElementById('statLessons').textContent = data.completed_lessons_count || 0;
+        document.getElementById('statPlaytime').textContent = (data.playtime_minutes || 0) + " phút";
+        
+        // Tính phần trăm đúng
+        const total = data.total_answered || 0;
+        const correct = data.correct_answers || 0;
+        const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
+        document.getElementById('statAccuracy').textContent = accuracy + "%";
 
-  const username = document.getElementById('username').value.trim();
-  const email    = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value;
-
-  let valid = true;
-  if (username.length < 3) { showErr('errUser', true); valid = false; } else showErr('errUser', false);
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showErr('errEmail', true); valid = false; } else showErr('errEmail', false);
-  if (password.length < 6) { showErr('errPwd', true); valid = false; } else showErr('errPwd', false);
-  if (!valid) return;
-
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Đang đăng ký...';
-
-  try {
-    const res = await fetch(`${SUPA_URL}/auth/v1/signup`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}` },
-      body: JSON.stringify({ email, password, data: { username } })
-    });
-    const data = await res.json();
-
-    if (!res.ok) {
-      const msg = data.msg || data.error_description || data.message || 'Đã có lỗi xảy ra.';
-      showToast('Lỗi: ' + msg);
-      btn.disabled = false;
-      btn.innerHTML = 'Đăng ký miễn phí';
-      return;
+    } catch (err) {
+        console.error("Lỗi lấy dữ liệu:", err);
     }
-
-    document.getElementById('emailBadge').textContent = email;
-    document.getElementById('formView').style.display = 'none';
-    const sv = document.getElementById('successView');
-    sv.style.display = 'block';
-
-  } catch(err) {
-    showToast('Lỗi kết nối. Vui lòng thử lại.');
-    btn.disabled = false;
-    btn.innerHTML = 'Đăng ký miễn phí';
-  }
 }
 
-function openGmail() {
-  const email = document.getElementById('emailBadge').textContent;
-  const domain = email.split('@')[1] || '';
-  let url = 'https://mail.google.com';
-  if (domain && domain !== 'gmail.com') url = `https://mail.${domain}`;
-  window.open(url, '_blank');
+// ============================================================
+// 3. CẬP NHẬT GIAO DIỆN THEO TRẠNG THÁI ĐĂNG NHẬP
+// ============================================================
+async function updateUI() {
+    if (!supabase) return;
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const authSection = document.getElementById('authSection');
+    const userPanel   = document.getElementById('userPanel');
+    const userNameSpan = document.getElementById('userNameSpan');
+    const userAvatar   = document.getElementById('userAvatar');
+    const dashboard   = document.getElementById('dashboardSection');
+
+    if (user) {
+        const meta     = user.user_metadata || {};
+        const username = meta.username || user.email?.split('@')[0] || "Thành viên";
+        userNameSpan.textContent = username;
+        userAvatar.textContent   = username.charAt(0).toUpperCase();
+        
+        authSection.style.display = 'none';
+        userPanel.style.display   = 'flex';
+        dashboard.style.display   = 'block'; // Hiện Dashboard
+        
+        fetchUserStats(user.id); // Gọi API lấy điểm
+    } else {
+        authSection.style.display = 'flex';
+        userPanel.style.display   = 'none';
+        dashboard.style.display   = 'none'; // Ẩn Dashboard
+    }
 }
 
-async function resend() {
-  const email = document.getElementById('emailBadge').textContent;
-  showToast('Đang gửi lại...');
-  try {
-    await fetch(`${SUPA_URL}/auth/v1/resend`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}` },
-      body: JSON.stringify({ type: 'signup', email })
-    });
-    showToast('Đã gửi lại email xác thực!');
-  } catch { showToast('Không thể gửi lại, thử lại sau.'); }
+// ============================================================
+// XỬ LÝ MODAL & FORM (GIỮ NGUYÊN)
+// ============================================================
+const loginModal = document.getElementById('loginModal');
+const signupModal = document.getElementById('signupModal');
+
+function openModal(modal) { modal.classList.add('active'); }
+function closeModal(modal) { modal.classList.remove('active'); }
+function closeAllModals() { closeModal(loginModal); closeModal(signupModal); }
+function setMsg(el, text, type) { el.textContent = text; el.className = 'msg ' + type; }
+
+document.getElementById('loginBtn').addEventListener('click', () => openModal(loginModal));
+document.getElementById('signupBtn').addEventListener('click', () => openModal(signupModal));
+document.querySelectorAll('.close-modal').forEach(btn => {
+    btn.addEventListener('click', () => closeAllModals());
+});
+document.getElementById('switchToSignupLink').addEventListener('click', () => { closeModal(loginModal); openModal(signupModal); });
+document.getElementById('switchToLoginLink').addEventListener('click', () => { closeModal(signupModal); openModal(loginModal); });
+
+// Đăng nhập
+document.getElementById('loginFormModal').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const msgEl = document.getElementById('loginMessage');
+    
+    setMsg(msgEl, 'Đang xử lý...', '');
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    
+    if (error) {
+        setMsg(msgEl, '❌ Sai email hoặc mật khẩu.', 'error');
+    } else {
+        setMsg(msgEl, '✅ Đăng nhập thành công!', 'success');
+        showToast('Đăng nhập thành công!', 'success');
+        setTimeout(() => { closeAllModals(); updateUI(); e.target.reset(); setMsg(msgEl, '', ''); }, 800);
+    }
+});
+
+// Đăng ký
+document.getElementById('signupFormModal').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('signupUsername').value.trim();
+    const email = document.getElementById('signupEmail').value.trim();
+    const password = document.getElementById('signupPassword').value;
+    const confirm = document.getElementById('signupConfirm').value;
+    const msgEl = document.getElementById('signupMessage');
+
+    if (password !== confirm) { setMsg(msgEl, '⚠️ Mật khẩu xác nhận không khớp.', 'error'); return; }
+
+    setMsg(msgEl, 'Đang xử lý...', '');
+    const { error } = await supabase.auth.signUp({ email, password, options: { data: { username } } });
+    
+    if (error) {
+        setMsg(msgEl, '❌ ' + error.message, 'error');
+    } else {
+        setMsg(msgEl, '✅ Đăng ký thành công! Hãy kiểm tra email xác thực.', 'success');
+        showToast('Đăng ký thành công! Kiểm tra email.', 'success');
+        setTimeout(() => { closeAllModals(); e.target.reset(); setMsg(msgEl, '', ''); }, 2000);
+    }
+});
+
+document.getElementById('logoutButton').addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    updateUI();
+    showToast('Đã đăng xuất.', 'info');
+});
+
+if (supabase) {
+    supabase.auth.onAuthStateChange(() => updateUI());
+    updateUI();
 }
 </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>GemXcel | AI & Blockchain cho Đá quý</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #faf9ff;
+            color: #1e1e2f;
+            line-height: 1.5;
+            scroll-behavior: smooth;
+        }
+
+        /* ===== NAVBAR ===== */
+        .navbar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 1rem 5%; background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(8px); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+            position: sticky; top: 0; z-index: 1000; flex-wrap: wrap; gap: 0.8rem;
+        }
+        .logo {
+            font-family: 'Poppins', sans-serif; font-size: 1.8rem; font-weight: 700;
+            background: linear-gradient(135deg, #c0399b, #6c5ce7);
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+            text-decoration: none;
+        }
+        .nav-links { display: flex; gap: 2rem; align-items: center; }
+        .nav-links a { text-decoration: none; font-weight: 500; color: #2d2b3e; transition: color 0.2s; }
+        .nav-links a:hover { color: #9b59b6; }
+        .auth-buttons { display: flex; gap: 0.8rem; align-items: center; }
+
+        .btn-outline, .btn-primary {
+            padding: 0.5rem 1.2rem; border-radius: 40px; font-weight: 600; border: none;
+            cursor: pointer; transition: all 0.2s ease; font-size: 0.9rem;
+            font-family: 'Inter', sans-serif; display: inline-flex; align-items: center; gap: 0.4rem;
+        }
+        .btn-outline { background: transparent; border: 1.5px solid #9b59b6; color: #9b59b6; }
+        .btn-outline:hover { background: #9b59b6; color: white; transform: translateY(-2px); }
+        .btn-primary { background: linear-gradient(95deg, #c0399b, #6c5ce7); color: white; box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(108, 92, 231, 0.4); }
+
+        .user-info { display: flex; align-items: center; gap: 0.8rem; background: #f0eef7; padding: 0.3rem 0.8rem 0.3rem 0.4rem; border-radius: 50px; }
+        .user-avatar {
+            width: 36px; height: 36px; background: linear-gradient(145deg, #c0399b, #6c5ce7);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            color: white; font-weight: bold; font-size: 1rem; flex-shrink: 0;
+        }
+        #userNameSpan { font-weight: 600; color: #2d2b3e; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* ===== HERO ===== */
+        .hero { padding: 5rem 5% 4rem; text-align: center; background: linear-gradient(120deg, #ffffff 0%, #f8f4ff 100%); }
+        .hero h1 {
+            font-size: 3.2rem; font-weight: 800; background: linear-gradient(125deg, #2c2c54, #a02080);
+            -webkit-background-clip: text; background-clip: text; color: transparent; margin-bottom: 1rem; line-height: 1.2;
+        }
+        .hero p { font-size: 1.2rem; color: #4a4a6a; max-width: 700px; margin: 0 auto 2rem; }
+        
+        /* ===== DASHBOARD (HỒ SƠ HỌC TẬP) ===== */
+        .dashboard-section { padding: 2rem 5% 4rem; background: #faf9ff; }
+        .dashboard-container {
+            max-width: 1000px; margin: 0 auto; background: white;
+            border-radius: 24px; padding: 2rem; box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            border: 1px solid #f0eef7;
+        }
+        .dashboard-container h2 { text-align: center; margin-bottom: 2rem; color: #2d2b3e; font-size: 1.8rem; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.5rem; }
+        .stat-card {
+            display: flex; align-items: center; gap: 1rem; padding: 1.5rem;
+            background: #fdfcff; border-radius: 16px; border: 1px solid #eef;
+            transition: transform 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(108,92,231,0.1); }
+        .stat-card i { font-size: 2.2rem; }
+        .stat-info { display: flex; flex-direction: column; }
+        .stat-value { font-size: 1.6rem; font-weight: 700; color: #2d2b3e; }
+        .stat-label { font-size: 0.9rem; color: #7a7a9a; font-weight: 500;}
+
+        /* ===== FEATURES & ABOUT ===== */
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 2rem; padding: 3rem 5%; background: white; }
+        .feature-card { background: #ffffff; border-radius: 28px; padding: 2rem 1.5rem; box-shadow: 0 20px 35px -12px rgba(0,0,0,0.08); border: 1px solid #eeeaff; transition: transform 0.2s; }
+        .feature-card:hover { transform: translateY(-4px); box-shadow: 0 28px 45px -12px rgba(108, 92, 231, 0.15); }
+        .feature-card i { font-size: 2.8rem; background: linear-gradient(135deg, #c0399b, #6c5ce7); -webkit-background-clip: text; background-clip: text; color: transparent; margin-bottom: 1rem; display: block; }
+        
+        .about-section { padding: 4rem 5%; background: #f2effc; border-radius: 40px 40px 0 0; }
+        .about-container { max-width: 1200px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 3rem; align-items: center; }
+        .about-text { flex: 1; min-width: 280px; }
+        .about-text h2 { font-size: 2rem; margin-bottom: 1rem; color: #2d2b3e;}
+        .about-text p { color: #4a4a6a; margin-bottom: 0.8rem; line-height: 1.8; }
+
+        /* ===== MODAL & FORMS ===== */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px); justify-content: center; align-items: center; z-index: 2000; padding: 1rem; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; max-width: 440px; width: 100%; border-radius: 32px; padding: 2.2rem 2rem; position: relative; animation: fadeUp 0.22s ease; box-shadow: 0 32px 64px rgba(0,0,0,0.18); }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+        .modal-content h3 { font-size: 1.7rem; margin-bottom: 1.5rem; text-align: center; }
+        .input-group { margin-bottom: 1rem; position: relative; }
+        .input-group i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #aaa; }
+        .modal-content input { width: 100%; padding: 12px 15px 12px 38px; border: 1.5px solid #e0ddf5; border-radius: 28px; outline: none; background: #faf9ff; }
+        .modal-content input:focus { border-color: #c0399b; box-shadow: 0 0 0 3px rgba(192, 57, 155, 0.15); background: white; }
+        .modal-content button[type="submit"] { width: 100%; background: linear-gradient(95deg, #c0399b, #6c5ce7); border: none; padding: 13px; border-radius: 40px; color: white; font-weight: bold; cursor: pointer; margin-top: 0.5rem; }
+        .close-modal { position: absolute; top: 16px; right: 20px; font-size: 1.6rem; cursor: pointer; background: none; border: none; color: #bbb; }
+        
+        .msg { font-size: 0.85rem; margin-top: 10px; padding: 10px; border-radius: 20px; text-align: center; }
+        .msg:empty { display: none; }
+        .msg.error { background: #ffe6e6; color: #c0392b; }
+        .msg.success { background: #e0f7e8; color: #2e7d32; }
+
+        /* ===== TOAST ===== */
+        #toastContainer { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        .toast { padding: 12px 20px; border-radius: 16px; color: white; font-weight: 500; animation: slideIn 0.3s ease, fadeOut 0.4s ease 2.6s forwards; }
+        .toast.success { background: linear-gradient(95deg, #00b894, #00cec9); }
+        .toast.error   { background: linear-gradient(95deg, #e17055, #d63031); }
+        .toast.info    { background: linear-gradient(95deg, #6c5ce7, #a29bfe); }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes fadeOut { to { opacity: 0; transform: translateX(40px); } }
+
+        @media (max-width: 768px) { .navbar { flex-direction: column; } .hero h1 { font-size: 2rem; } }
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <a class="logo" href="#">Gem<span style="color:#6c5ce7; background:none; -webkit-text-fill-color:#6c5ce7;">Xcel</span></a>
+    <div class="nav-links">
+        <a href="#">Trang chủ</a>
+        <a href="#features">Tính năng</a>
+        <a href="#about">Dự án</a>
+    </div>
+    <div id="authSection" class="auth-buttons">
+        <button id="loginBtn" class="btn-outline"><i class="fas fa-sign-in-alt"></i> Đăng nhập</button>
+        <button id="signupBtn" class="btn-primary"><i class="fas fa-user-plus"></i> Đăng ký</button>
+    </div>
+    <div id="userPanel" style="display:none;" class="user-info">
+        <div class="user-avatar" id="userAvatar">U</div>
+        <span id="userNameSpan">Thành viên</span>
+        <button id="logoutButton" class="btn-outline" style="padding:0.3rem 0.9rem; font-size:0.82rem;"><i class="fas fa-sign-out-alt"></i> Thoát</button>
+    </div>
+</nav>
+
+<section class="hero">
+    <h1>GemXcel — Nền tảng Học tập Đá quý</h1>
+    <p>Kết hợp giữa Trí tuệ nhân tạo và Gamification để giúp bạn chinh phục kiến thức về đá quý một cách dễ dàng.</p>
+</section>
+
+<section id="dashboardSection" class="dashboard-section" style="display:none;">
+    <div class="dashboard-container">
+        <h2><i class="fas fa-chart-pie" style="color: #6c5ce7;"></i> Thống Kê Học Tập Của Bạn</h2>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <i class="fas fa-fire" style="color: #ff7675;"></i>
+                <div class="stat-info">
+                    <span class="stat-value" id="statStreak">0</span>
+                    <span class="stat-label">Chuỗi ngày học</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-star" style="color: #fdcb6e;"></i>
+                <div class="stat-info">
+                    <span class="stat-value" id="statPoint">0</span>
+                    <span class="stat-label">Tổng điểm</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-book-open" style="color: #74b9ff;"></i>
+                <div class="stat-info">
+                    <span class="stat-value" id="statLessons">0</span>
+                    <span class="stat-label">Bài đã hoàn thành</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-bullseye" style="color: #55efc4;"></i>
+                <div class="stat-info">
+                    <span class="stat-value" id="statAccuracy">0%</span>
+                    <span class="stat-label">Tỉ lệ trả lời đúng</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-clock" style="color: #a29bfe;"></i>
+                <div class="stat-info">
+                    <span class="stat-value" id="statPlaytime">0 phút</span>
+                    <span class="stat-label">Thời gian học</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="features" class="features-grid">
+    <div class="feature-card">
+        <i class="fas fa-brain"></i>
+        <h3>AI Grading</h3>
+        <p>Phân tích độ tinh khiết, màu sắc bằng deep learning, độ chính xác cao.</p>
+    </div>
+    <div class="feature-card">
+        <i class="fas fa-gamepad"></i>
+        <h3>Vừa học vừa chơi</h3>
+        <p>Thu thập ngọc, duy trì chuỗi ngày và tham gia các bài Quiz để nhận phần thưởng.</p>
+    </div>
+    <div class="feature-card">
+        <i class="fas fa-chart-line"></i>
+        <h3>Báo cáo tiến độ</h3>
+        <p>Đồng bộ dữ liệu học tập lên cloud, phụ huynh dễ dàng theo dõi trực tuyến.</p>
+    </div>
+</section>
+
+<section id="about" class="about-section">
+    <div class="about-container">
+        <div class="about-text">
+            <h2>Về GemXcel Project</h2>
+            <p><strong>GemXcel</strong> là dự án mã nguồn mở tiên phong kết hợp AI và Gamification để số hóa ngành giáo dục đá quý.</p>
+        </div>
+    </div>
+</section>
+
+<div id="loginModal" class="modal">
+    <div class="modal-content">
+        <button class="close-modal" data-modal="loginModal">&times;</button>
+        <h3><i class="fas fa-sign-in-alt"></i> Đăng nhập</h3>
+        <form id="loginFormModal">
+            <div class="input-group"><i class="fas fa-envelope"></i><input type="email" id="loginEmail" placeholder="Email của bạn" required></div>
+            <div class="input-group"><i class="fas fa-lock"></i><input type="password" id="loginPassword" placeholder="Mật khẩu" required></div>
+            <button type="submit" id="loginSubmitBtn">Đăng nhập</button>
+            <div id="loginMessage" class="msg"></div>
+        </form>
+        <div style="text-align:center; margin-top:1rem; font-size:0.85rem;"><a id="switchToSignupLink" style="color:#9b59b6; cursor:pointer;">Chưa có tài khoản? <strong>Đăng ký</strong></a></div>
+    </div>
+</div>
+
+<div id="signupModal" class="modal">
+    <div class="modal-content">
+        <button class="close-modal" data-modal="signupModal">&times;</button>
+        <h3><i class="fas fa-user-plus"></i> Đăng ký</h3>
+        <form id="signupFormModal">
+            <div class="input-group"><i class="fas fa-user"></i><input type="text" id="signupUsername" placeholder="Tên hiển thị" required></div>
+            <div class="input-group"><i class="fas fa-envelope"></i><input type="email" id="signupEmail" placeholder="Địa chỉ Gmail" required></div>
+            <div class="input-group"><i class="fas fa-lock"></i><input type="password" id="signupPassword" placeholder="Mật khẩu (tối thiểu 6 ký tự)" required></div>
+            <div class="input-group"><i class="fas fa-lock"></i><input type="password" id="signupConfirm" placeholder="Xác nhận mật khẩu" required></div>
+            <button type="submit" id="signupSubmitBtn">Đăng ký ngay</button>
+            <div id="signupMessage" class="msg"></div>
+        </form>
+        <div style="text-align:center; margin-top:1rem; font-size:0.85rem;"><a id="switchToLoginLink" style="color:#9b59b6; cursor:pointer;">Đã có tài khoản? <strong>Đăng nhập</strong></a></div>
+    </div>
+</div>
+
+<div id="toastContainer"></div>
+
+<footer><p>© 2025 GemXcel Project</p></footer>
+
+<script>
+// ============================================================
+// 1. KHỞI TẠO SUPABASE (ĐÃ FIX LỖI SAI LINK)
+// ============================================================
+const SUPABASE_URL  = "https://hwqlvikzeybssocyjjn.supabase.co"; // <-- Đã xóa chữ 'k' bị dư ở đây
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh3cWx2aWtremV5YnNzb2N5ampuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyMjI0MjIsImV4cCI6MjA5MDc5ODQyMn0.TbE6dcFZsCWh0267JpDm4dQFbWEgIgU3EN5OUXM5CLg";
+
+let supabase;
+if (window.supabase) {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+}
+
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 3400);
+}
+
+// ============================================================
+// 2. LẤY DỮ LIỆU TỪ BẢNG STUDENT_STATS
+// ============================================================
+async function fetchUserStats(userId) {
+    try {
+        const { data, error } = await supabase
+            .from('student_stats')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+
+        if (error) {
+            console.log("Học sinh chưa có dữ liệu đồng bộ từ Game:", error.message);
+            return;
+        }
+
+        // Cập nhật dữ liệu lên giao diện
+        document.getElementById('statStreak').textContent = data.streak || 0;
+        document.getElementById('statPoint').textContent = data.point || 0;
+        document.getElementById('statLessons').textContent = data.completed_lessons_count || 0;
+        document.getElementById('statPlaytime').textContent = (data.playtime_minutes || 0) + " phút";
+        
+        // Tính phần trăm đúng
+        const total = data.total_answered || 0;
+        const correct = data.correct_answers || 0;
+        const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
+        document.getElementById('statAccuracy').textContent = accuracy + "%";
+
+    } catch (err) {
+        console.error("Lỗi lấy dữ liệu:", err);
+    }
+}
+
+// ============================================================
+// 3. CẬP NHẬT GIAO DIỆN THEO TRẠNG THÁI ĐĂNG NHẬP
+// ============================================================
+async function updateUI() {
+    if (!supabase) return;
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const authSection = document.getElementById('authSection');
+    const userPanel   = document.getElementById('userPanel');
+    const userNameSpan = document.getElementById('userNameSpan');
+    const userAvatar   = document.getElementById('userAvatar');
+    const dashboard   = document.getElementById('dashboardSection');
+
+    if (user) {
+        const meta     = user.user_metadata || {};
+        const username = meta.username || user.email?.split('@')[0] || "Thành viên";
+        userNameSpan.textContent = username;
+        userAvatar.textContent   = username.charAt(0).toUpperCase();
+        
+        authSection.style.display = 'none';
+        userPanel.style.display   = 'flex';
+        dashboard.style.display   = 'block'; // Hiện Dashboard
+        
+        fetchUserStats(user.id); // Gọi API lấy điểm
+    } else {
+        authSection.style.display = 'flex';
+        userPanel.style.display   = 'none';
+        dashboard.style.display   = 'none'; // Ẩn Dashboard
+    }
+}
+
+// ============================================================
+// XỬ LÝ MODAL & FORM (GIỮ NGUYÊN)
+// ============================================================
+const loginModal = document.getElementById('loginModal');
+const signupModal = document.getElementById('signupModal');
+
+function openModal(modal) { modal.classList.add('active'); }
+function closeModal(modal) { modal.classList.remove('active'); }
+function closeAllModals() { closeModal(loginModal); closeModal(signupModal); }
+function setMsg(el, text, type) { el.textContent = text; el.className = 'msg ' + type; }
+
+document.getElementById('loginBtn').addEventListener('click', () => openModal(loginModal));
+document.getElementById('signupBtn').addEventListener('click', () => openModal(signupModal));
+document.querySelectorAll('.close-modal').forEach(btn => {
+    btn.addEventListener('click', () => closeAllModals());
+});
+document.getElementById('switchToSignupLink').addEventListener('click', () => { closeModal(loginModal); openModal(signupModal); });
+document.getElementById('switchToLoginLink').addEventListener('click', () => { closeModal(signupModal); openModal(loginModal); });
+
+// Đăng nhập
+document.getElementById('loginFormModal').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const msgEl = document.getElementById('loginMessage');
+    
+    setMsg(msgEl, 'Đang xử lý...', '');
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    
+    if (error) {
+        setMsg(msgEl, '❌ Sai email hoặc mật khẩu.', 'error');
+    } else {
+        setMsg(msgEl, '✅ Đăng nhập thành công!', 'success');
+        showToast('Đăng nhập thành công!', 'success');
+        setTimeout(() => { closeAllModals(); updateUI(); e.target.reset(); setMsg(msgEl, '', ''); }, 800);
+    }
+});
+
+// Đăng ký
+document.getElementById('signupFormModal').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('signupUsername').value.trim();
+    const email = document.getElementById('signupEmail').value.trim();
+    const password = document.getElementById('signupPassword').value;
+    const confirm = document.getElementById('signupConfirm').value;
+    const msgEl = document.getElementById('signupMessage');
+
+    if (password !== confirm) { setMsg(msgEl, '⚠️ Mật khẩu xác nhận không khớp.', 'error'); return; }
+
+    setMsg(msgEl, 'Đang xử lý...', '');
+    const { error } = await supabase.auth.signUp({ email, password, options: { data: { username } } });
+    
+    if (error) {
+        setMsg(msgEl, '❌ ' + error.message, 'error');
+    } else {
+        setMsg(msgEl, '✅ Đăng ký thành công! Hãy kiểm tra email xác thực.', 'success');
+        showToast('Đăng ký thành công! Kiểm tra email.', 'success');
+        setTimeout(() => { closeAllModals(); e.target.reset(); setMsg(msgEl, '', ''); }, 2000);
+    }
+});
+
+document.getElementById('logoutButton').addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    updateUI();
+    showToast('Đã đăng xuất.', 'info');
+});
+
+if (supabase) {
+    supabase.auth.onAuthStateChange(() => updateUI());
+    updateUI();
+}
+</script>
+</body>
+</html>
