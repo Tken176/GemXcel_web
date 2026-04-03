@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng ký tài khoản</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        /* CSS cho giao diện động và hiện đại */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            /* Hiệu ứng nền gradient động */
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 40px 30px;
+            border-radius: 15px;
+            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2);
+            width: 400px;
+            max-width: 90%;
+            backdrop-filter: blur(10px);
+            animation: slideUp 0.8s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .container h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 30px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 10px 0;
+            font-size: 16px;
+            color: #333;
+            border: none;
+            border-bottom: 2px solid #ccc;
+            outline: none;
+            background: transparent;
+            transition: 0.3s;
+        }
+
+        /* Hiệu ứng floating label */
+        .input-group label {
+            position: absolute;
+            top: 10px;
+            left: 0;
+            font-size: 16px;
+            color: #999;
+            pointer-events: none;
+            transition: 0.3s ease all;
+        }
+
+        .input-group input:focus ~ label,
+        .input-group input:valid ~ label {
+            top: -20px;
+            font-size: 12px;
+            color: #e73c7e;
+            font-weight: 500;
+        }
+
+        .input-group input:focus {
+            border-bottom: 2px solid #e73c7e;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(to right, #e73c7e, #23a6d5);
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .message {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            display: none;
+            padding: 10px;
+            border-radius: 8px;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Đăng Ký</h2>
+        <form id="signup-form">
+            <div class="input-group">
+                <input type="text" id="username" required autocomplete="off">
+                <label for="username">Tên tài khoản</label>
+            </div>
+            
+            <div class="input-group">
+                <input type="email" id="email" required autocomplete="off">
+                <label for="email">Địa chỉ Gmail</label>
+            </div>
+            
+            <div class="input-group">
+                <input type="password" id="password" required>
+                <label for="password">Mật khẩu</label>
+            </div>
+            
+            <button type="submit" id="submit-btn">Đăng ký ngay</button>
+        </form>
+
+        <div id="message-box" class="message"></div>
+    </div>
+
+    <script>
+        // Khởi tạo Supabase client với thông tin bạn cung cấp
+        const SUPABASE_URL = 'https://hwqlvikkzeybssocyjjn.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh3cWx2aWtremV5YnNzb2N5ampuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyMjI0MjIsImV4cCI6MjA5MDc5ODQyMn0.TbE6dcFZsCWh0267JpDm4dQFbWEgIgU3EN5OUXM5CLg';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const form = document.getElementById('signup-form');
+        const submitBtn = document.getElementById('submit-btn');
+        const messageBox = document.getElementById('message-box');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault(); // Ngăn chặn reload trang
+
+            const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            // Đổi trạng thái nút thành đang tải
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'Đang xử lý...';
+            messageBox.className = 'message'; // Reset class
+            messageBox.innerHTML = '';
+
+            try {
+                // Gọi API đăng ký của Supabase
+                const { data, error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: {
+                            // Lưu tên tài khoản vào user metadata
+                            username: username 
+                        }
+                    }
+                });
+
+                if (error) {
+                    throw error;
+                }
+
+                // Thành công
+                form.style.display = 'none'; // Ẩn form đi cho gọn
+                document.querySelector('h2').innerText = 'Hoàn tất!';
+                messageBox.classList.add('success');
+                messageBox.innerHTML = `<strong>Đăng ký thành công!</strong><br>Vui lòng mở hộp thư Gmail của bạn (${email}) và nhấp vào liên kết xác thực để kích hoạt tài khoản.`;
+                
+            } catch (error) {
+                // Xử lý lỗi (ví dụ: email đã tồn tại, mật khẩu quá ngắn...)
+                messageBox.classList.add('error');
+                messageBox.innerHTML = `<strong>Lỗi:</strong> ${error.message}`;
+            } finally {
+                // Khôi phục trạng thái nút
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'Đăng ký ngay';
+            }
+        });
+    </script>
+</body>
+</html>
