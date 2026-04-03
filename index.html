@@ -389,7 +389,6 @@
       <span class="gradient-text">GemXcel</span>
     </div>
     <div id="authWidget">
-      <!-- dynamic: nút login hoặc user panel -->
       <div class="auth-buttons" id="unauthButtons">
         <button class="btn btn-outline" id="openLoginBtn">Đăng nhập</button>
         <button class="btn btn-primary" id="openRegisterBtn">Đăng ký</button>
@@ -434,7 +433,6 @@
   <div class="modal-content">
     <span class="modal-close" id="closeModalBtn">&times;</span>
     <div id="authFormContainer">
-      <!-- Form đăng nhập (default) -->
       <div id="loginForm">
         <h3>Đăng nhập</h3>
         <div class="input-group"><label>Email</label><input type="email" id="loginEmail" placeholder="hocsinh@example.com"></div>
@@ -443,7 +441,6 @@
         <button class="btn btn-primary" id="doLoginBtn" style="width:100%">Đăng nhập</button>
         <div class="auth-switch">Chưa có tài khoản? <a id="switchToRegister">Đăng ký ngay</a></div>
       </div>
-      <!-- Form đăng ký (hidden) -->
       <div id="registerForm" style="display:none;">
         <h3>Đăng ký</h3>
         <div class="input-group"><label>Họ tên</label><input type="text" id="regName" placeholder="Nguyễn Văn A"></div>
@@ -452,7 +449,6 @@
         <button class="btn btn-primary" id="doRegisterBtn" style="width:100%">Tạo tài khoản</button>
         <div class="auth-switch">Đã có tài khoản? <a id="switchToLogin">Đăng nhập</a></div>
       </div>
-      <!-- Form quên mật khẩu (hidden) -->
       <div id="forgotForm" style="display:none;">
         <h3>Khôi phục mật khẩu</h3>
         <div class="input-group"><label>Email của bạn</label><input type="email" id="resetEmail" placeholder="example@domain.com"></div>
@@ -466,10 +462,10 @@
 <div id="toastMessage" class="toast"></div>
 
 <script>
-  // ---------- KHỞI TẠO SUPABASE ----------
+  // ---------- KHỞI TẠO SUPABASE (đổi tên biến để tránh xung đột) ----------
   const SUPABASE_URL = "https://hwqlvikkzeybssocyjjn.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh3cWx2aWtremV5YnNzb2N5ampuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyMjI0MjIsImV4cCI6MjA5MDc5ODQyMn0.TbE6dcFZsCWh0267JpDm4dQFbWEgIgU3EN5OUXM5CLg";
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   // DOM elements
   const unauthDiv = document.getElementById('unauthButtons');
@@ -545,7 +541,7 @@
 
   // Ensure user row in student_stats
   async function ensureUserStats(userId, email) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('student_stats')
       .select('user_id')
       .eq('user_id', userId)
@@ -555,8 +551,7 @@
       return false;
     }
     if (!data) {
-      // tạo row mới với giá trị mặc định
-      const { error: insertError } = await supabase
+      const { error: insertError } = await supabaseClient
         .from('student_stats')
         .insert([{
           user_id: userId,
@@ -579,7 +574,7 @@
   // Load stats từ database
   async function loadUserStats(userId) {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from('student_stats')
         .select('point, streak, completed_lessons_count, total_answered, correct_answers, playtime_minutes')
         .eq('user_id', userId)
@@ -588,10 +583,9 @@
       if (data) {
         updateDashboardUI(data);
       } else {
-        // nếu chưa có, thử tạo mới và load lại
         const email = currentUser?.email;
         await ensureUserStats(userId, email);
-        const { data: retryData } = await supabase
+        const { data: retryData } = await supabaseClient
           .from('student_stats')
           .select('point, streak, completed_lessons_count, total_answered, correct_answers, playtime_minutes')
           .eq('user_id', userId)
@@ -620,7 +614,7 @@
   // Realtime subscription
   function subscribeToStatsChanges(userId) {
     if (statsSubscription) statsSubscription.unsubscribe();
-    statsSubscription = supabase
+    statsSubscription = supabaseClient
       .channel(`stats-${userId}`)
       .on('postgres_changes', {
         event: 'UPDATE',
@@ -636,7 +630,7 @@
   // ---------- AUTH HANDLERS ----------
   async function handleLogin(email, password) {
     if (!email || !password) { showToast('Vui lòng nhập email và mật khẩu', 'error'); return false; }
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
     if (error) {
       showToast(error.message, 'error');
       return false;
@@ -651,7 +645,7 @@
   async function handleRegister(email, password, fullname) {
     if (!email || !password || !fullname) { showToast('Vui lòng điền đầy đủ thông tin', 'error'); return false; }
     if (password.length < 6) { showToast('Mật khẩu tối thiểu 6 ký tự', 'error'); return false; }
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await supabaseClient.auth.signUp({
       email,
       password,
       options: { data: { username: fullname.trim() } }
@@ -662,9 +656,7 @@
     }
     if (data.user) {
       showToast('Đăng ký thành công! Vui lòng xác nhận email (nếu cần) hoặc đăng nhập ngay.', 'success');
-      // Tự động chuyển về login form
       showLoginForm();
-      // Nếu user đã được xác thực tự động (tùy config supabase)
       if (data.session) {
         currentUser = data.user;
         await ensureUserStats(currentUser.id, currentUser.email);
@@ -680,7 +672,7 @@
 
   async function handleForgotPassword(email) {
     if (!email) { showToast('Vui lòng nhập email', 'error'); return; }
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
       redirectTo: window.location.origin,
     });
     if (error) {
@@ -692,7 +684,7 @@
   }
 
   async function handleLogout() {
-    await supabase.auth.signOut();
+    await supabaseClient.auth.signOut();
     currentUser = null;
     updateUIForAuth(null);
     showToast('Đã đăng xuất', 'success');
@@ -721,7 +713,7 @@
 
   // Kiểm tra session hiện tại
   async function checkSession() {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
       currentUser = session.user;
       updateUIForAuth(currentUser);
@@ -760,13 +752,12 @@
     });
     logoutBtn?.addEventListener('click', handleLogout);
     // enter key support
-    const inputs = ['loginPassword','regPassword','resetEmail'];
-    inputs.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.addEventListener('keypress', (e) => { if(e.key === 'Enter') doLoginBtn?.click(); });
-    });
-    document.getElementById('regPassword')?.addEventListener('keypress', (e) => { if(e.key === 'Enter') doRegisterBtn?.click(); });
-    document.getElementById('resetEmail')?.addEventListener('keypress', (e) => { if(e.key === 'Enter') doResetBtn?.click(); });
+    const loginPass = document.getElementById('loginPassword');
+    if (loginPass) loginPass.addEventListener('keypress', (e) => { if(e.key === 'Enter') doLoginBtn?.click(); });
+    const regPass = document.getElementById('regPassword');
+    if (regPass) regPass.addEventListener('keypress', (e) => { if(e.key === 'Enter') doRegisterBtn?.click(); });
+    const resetEmail = document.getElementById('resetEmail');
+    if (resetEmail) resetEmail.addEventListener('keypress', (e) => { if(e.key === 'Enter') doResetBtn?.click(); });
   }
 
   // Khởi chạy
