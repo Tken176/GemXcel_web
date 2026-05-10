@@ -1147,10 +1147,13 @@ async function loadUserAndRender(authUser) {
         .from('user_stats')
         .select('*')
         .eq('user_id', authUser.id)
-        .single();
+        .maybeSingle();
+
+    console.log('Loading user stats:', { data, error });
 
     let stats;
     if (error || !data) {
+        console.log('Creating new user stats record...');
         const newRow = {
             user_id:                 authUser.id,
             email:                   authUser.email,
@@ -1162,11 +1165,24 @@ async function loadUserAndRender(authUser) {
             correct_answers:         0,
             playtime_minutes:        0,
         };
-        const { data: inserted } = await sb
-            .from('student_stats')
-            .upsert(newRow, { onConflict: 'user_id' })
+        const { data: inserted, error: insertError } = await sb
+            .from('user_stats')
+            .insert(newRow)
             .select().single();
-        stats = inserted || newRow;
+        
+        if (insertError && insertError.code === '23505') { // Unique violation
+            console.log('Record already exists, trying to update...');
+            const { data: updated, error: updateError } = await sb
+                .from('user_stats')
+                .update(newRow)
+                .eq('user_id', authUser.id)
+                .select().maybeSingle();
+            console.log('Update result:', { updated, updateError });
+            stats = updated || newRow;
+        } else {
+            console.log('Insert result:', { inserted, insertError });
+            stats = inserted || newRow;
+        }
     } else {
         stats = data;
     }
@@ -1199,49 +1215,43 @@ async function loadUserAndRender(authUser) {
 // ============================================================
 // LEARNING PATTERN ANALYSIS (DAILY TIME - REAL DATA)
 // ============================================================
-function renderLearningPattern(user) {
+async function renderLearningPattern(user) {
     const el = document.getElementById('learningPatternChart');
     if (!el) return;
 
-    // Sử dụng dữ liệu thực từ playtime_minutes
-    // Vì database chỉ lưu tổng thời gian, chúng ta sẽ ước tính phân bổ theo ngày
-    // dựa trên pattern học tập thực tế (học nhiều vào tối và cuối tuần)
-    const totalPlaytime = user.playtimeMinutes || 0; // Tổng thời gian từ database
+    // Lấy dữ liệu thực từ bảng daily_progress của Supabase
+    const { data: progressData, error } = await sb
+        .from('daily_progress')
+        .select('date, playtime_minutes')
+        .eq('user_id', user.id)
+        .gte('date', getDateDaysAgo(6))
+        .order('date', { ascending: true });
 
-    if (totalPlaytime === 0) {
+    if (error) {
+        console.error('Lỗi khi tải daily_progress:', error);
+        el.innerHTML = '<div class="chart-empty">Không thể tải dữ liệu thời gian học</div>';
+        return;
+    }
+
+    if (!progressData || progressData.length === 0) {
         el.innerHTML = '<div class="chart-empty">Chưa có dữ liệu thời gian học</div>';
         return;
     }
 
-    // Ước tính thời gian học mỗi ngày dựa trên pattern thực tế
-    // Giả sử user học chủ yếu vào tối (18h-21h) và cuối tuần
-    const baseDailyTime = Math.max(5, Math.floor(totalPlaytime / 30)); // Trung bình 1 giờ/ngày trong tháng
+    const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
     const dailyTimes = [];
 
-    for (let i = 0; i < 7; i++) {
-        let multiplier = 1.0;
+    for (let i = 6; i >= 0; i--) {
+        const targetDate = new Date();
+        targetDate.setDate(targetDate.getDate() - i);
+        const dateStr = targetDate.toISOString().split('T')[0];
 
-        // Tăng thời gian vào cuối tuần
-        if (i === 0 || i === 6) multiplier = 1.5; // Chủ nhật và thứ 7
-
-        // Thêm variation ngẫu nhiên ±30%
-        const variation = 0.7 + Math.random() * 0.6;
-        const dailyTime = Math.round(baseDailyTime * multiplier * variation);
-
-        dailyTimes.push(Math.min(dailyTime, 300)); // Max 5 giờ/ngày
+        const found = progressData.find(d => d.date === dateStr);
+        dailyTimes.push(found ? (found.playtime_minutes || 0) : 0);
     }
 
-    // Chuẩn hóa để tổng bằng với dữ liệu thực
-    const currentTotal = dailyTimes.reduce((a, b) => a + b, 0);
-    const scaleFactor = totalPlaytime / currentTotal;
-
-    for (let i = 0; i < dailyTimes.length; i++) {
-        dailyTimes[i] = Math.round(dailyTimes[i] * scaleFactor);
-    }
-
-    const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-    const maxTime = Math.max(...dailyTimes);
     const totalWeek = dailyTimes.reduce((a, b) => a + b, 0);
+    const maxTime = Math.max(...dailyTimes, 1);
 
     el.innerHTML = `
         <div class="daily-time-container">
@@ -1251,7 +1261,7 @@ function renderLearningPattern(user) {
             </div>
             <div class="daily-time-bars">
                 ${dailyTimes.map((time, index) => {
-                    const percentage = maxTime > 0 ? (time / maxTime) * 100 : 0;
+                    const percentage = (time / maxTime) * 100;
                     const hours = Math.floor(time / 60);
                     const minutes = time % 60;
                     const timeStr = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
@@ -1311,7 +1321,7 @@ function renderSubjectBreakdown(user) {
 }
 
 // ============================================================
-// PROGRESS VELOCITY (7 DAYS - REAL DATA)
+// PROGRESS VELOCITY (7 DAYS - REAL DATA ONLY)
 // ============================================================
 async function renderProgressVelocity(user) {
     const el = document.getElementById('progressVelocityChart');
@@ -1325,15 +1335,15 @@ async function renderProgressVelocity(user) {
         .gte('date', getDateDaysAgo(7))
         .order('date', { ascending: true });
 
-    let chartData = [];
-    if (error || !progressData) {
-        // Fallback to mock data if no real data available
-        console.log('No daily progress data found, using mock data');
-        chartData = generateMockProgressData();
-    } else {
-        // Process real data
-        chartData = processRealProgressData(progressData);
+    // Only show if we have real data, otherwise hide the section
+    if (error || !progressData || progressData.length === 0) {
+        console.log('No daily progress data found, hiding section');
+        el.innerHTML = '<div class="chart-empty">Chưa có dữ liệu tiến độ học tập</div>';
+        return;
     }
+
+    // Process real data
+    const chartData = processRealProgressData(progressData);
 
     el.innerHTML = `
         <div class="progress-velocity-container">
@@ -1636,7 +1646,7 @@ async function renderLeaderboard(currentUser) {
     list.innerHTML = '<div style="text-align:center;padding:20px;color:#7a5c3a;">⏳ Đang tải bảng xếp hạng...</div>';
 
     const { data, error } = await sb
-        .from('student_stats')
+        .from('user_stats')
         .select('username, point, user_id')
         .order('point', { ascending: false })
         .limit(10);
