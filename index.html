@@ -1144,7 +1144,7 @@ async function loadUserAndRender(authUser) {
         || "Học viên";
 
     const { data, error } = await sb
-        .from('student_stats')
+        .from('user_stats')
         .select('*')
         .eq('user_id', authUser.id)
         .single();
@@ -1471,7 +1471,7 @@ async function renderComparativeBenchmarks(user) {
 
     // Fetch leaderboard data to calculate averages
     const { data: leaderboardData, error } = await sb
-        .from('student_stats')
+        .from('user_stats')
         .select('point, streak, completed_lessons_count, total_answered, correct_answers')
         .limit(50); // Get top 50 for better averages
 
@@ -1666,8 +1666,7 @@ async function renderLeaderboard(currentUser) {
     const inTop = data.some(e => e.user_id === currentUser.id);
     if (!inTop) {
         const { count } = await sb
-            .from('student_stats')
-            .select('*', { count: 'exact', head: true })
+        .from('user_stats')
             .gt('point', currentUser.xp);
 
         const myRank = (count || 0) + 1;
