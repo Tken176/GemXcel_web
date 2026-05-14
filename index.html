@@ -611,7 +611,7 @@
              alt="GemXcel Logo">
             GemXcel
         </a>
-        <a href="https://www.mediafire.com/file/7hr7sl7xx0pj474/GemXcel_Setup.exe/file" 
+        <a href="https://www.dropbox.com/scl/fi/lk71r1bsc7esdzbjfzmn2/GemXcel_Setup.exe?rlkey=dbaxeu35qqt94hmod0daddr4h&st=jxkvgcr2&dl=1" 
             download class="btn-download-nav">
             <i class="fas fa-download"></i> <span class="dl-text">Tải về</span>
         </a>
@@ -1579,7 +1579,10 @@ async function loadWeeklyStats(user) {
             .from('daily_stats')
             .select('*')
             .eq('user_id', user.id)
-            .gte('date', sevenDaysAgo.toISOString().split('T')[0])
+            .gte(
+                'date',
+                `${sevenDaysAgo.getFullYear()}-${String(sevenDaysAgo.getMonth() + 1).padStart(2, '0')}-${String(sevenDaysAgo.getDate()).padStart(2, '0')}`
+            )
             .order('date', { ascending: true });
 
         if (error) {
@@ -1661,39 +1664,57 @@ async function loadWeeklyStats(user) {
         document.getElementById('weeklyLessons').innerHTML = `📚 ${totalLessons}`;
         document.getElementById('weeklyAccuracy').innerHTML = `🎯 ${avgAccuracy}%`;
 
-        // Render calendar (7 ngày gần nhất, từ cũ đến mới)
+        // Render calendar (7 ngày gần nhất) nhưng map theo THỨ của dateStr (không theo index)
         const weekDates = [];
         for (let i = 6; i >= 0; i--) {
             const date = new Date();
             date.setDate(date.getDate() - i);
-            weekDates.push(date.toISOString().split('T')[0]);
+
+            const localDateStr =
+                `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+            weekDates.push(localDateStr);
         }
 
-        weekDates.forEach((dateStr, index) => {
-            const dayEl = document.getElementById(`calendarDay${index + 1}`);
-            const timeEl = document.getElementById(`studyTime${index + 1}`);
-            const stat = statsMap[dateStr];
+        // chuẩn hóa slots theo thứ: CN=0..T7=6
+        const slotLabel = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+        const slotStats = new Array(7).fill(null); // index: dayIndex (0..6)
+
+        function parseLocalDate(isoDateStr) {
+            const [year, month, day] = isoDateStr.split('-').map(Number);
+            return new Date(year, month - 1, day);
+        }
+
+        weekDates.forEach(dateStr => {
+            const d = parseLocalDate(dateStr);
+            const dayIndex = d.getDay(); // 0..6 (0=CN)
+            slotStats[dayIndex] = statsMap[dateStr] || null;
+        });
+
+        for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
+            const slot = dayIndex + 1; // calendarDay1..7, studyTime1..7
+            const dayEl = document.getElementById(`calendarDay${slot}`);
+            const timeEl = document.getElementById(`studyTime${slot}`);
+
+            const stat = slotStats[dayIndex];
             const timeLabel = stat && stat.study_seconds > 0 ? formatTime(stat.study_seconds) : '-';
 
             if (dayEl && timeEl) {
                 if (stat && stat.study_seconds > 0) {
                     dayEl.classList.add('active');
-                    timeEl.innerHTML = timeLabel;
-                    dayEl.title = `${dateStr}: ${timeLabel} học`;
                 } else {
                     dayEl.classList.remove('active');
-                    timeEl.innerHTML = timeLabel;
-                    dayEl.title = `${dateStr}: Chưa học`;
                 }
+                timeEl.innerHTML = timeLabel;
+                dayEl.title = stat ? `(${slotLabel[dayIndex]}): ${timeLabel} học` : `(${slotLabel[dayIndex]}): Chưa học`;
             }
-        });
+        }
 
+        // Render chart theo thứ tự CN..T7
         const learningChartEl = document.getElementById('learningPatternChart');
         if (learningChartEl) {
-            learningChartEl.innerHTML = weekDates.map((dateStr, index) => {
-                const stat = statsMap[dateStr];
+            learningChartEl.innerHTML = slotStats.map((stat, dayIndex) => {
                 const timeLabel = stat && stat.study_seconds > 0 ? formatTime(stat.study_seconds) : 'Chưa học';
-                const label = ['CN','T2','T3','T4','T5','T6','T7'][index];
+                const label = slotLabel[dayIndex];
                 return `
                     <div class="study-day ${stat && stat.study_seconds > 0 ? 'active' : 'inactive'}">
                         <div class="study-day-label">${label}</div>
